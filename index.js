@@ -10,6 +10,8 @@ const token = "7144056280:AAF93lNz9zIDJtVh2BbIYXo8ubkRvJmQ_58";
 
 const bot = new telegram_bot(token, { polling: true });
 
+bot.on("polling_error", (msg) => console.log(msg));
+
 bot.on("message", (msg) => {
   const chatId = msg.chat.id;
 
