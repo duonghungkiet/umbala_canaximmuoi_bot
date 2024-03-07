@@ -1,4 +1,4 @@
-const telegram_bot = require("node-telegram-bot-api");
+const { Telegraf } = require("telegraf");
 const xml2js = require("xml2js");
 
 const api_link = "https://sjc.com.vn/xml/tygiavang.xml";
@@ -8,41 +8,30 @@ const { default: axios } = require("axios");
 
 const token = "7144056280:AAF93lNz9zIDJtVh2BbIYXo8ubkRvJmQ_58";
 
-const bot = new telegram_bot(token, { polling: true });
+const bot = new Telegraf(token);
 
-bot.on("polling_error", (msg) => console.log(msg));
+bot.start((ctx) =>
+  ctx.reply(
+    "Chào mừng đến bot kiểm tra giá vàng của JayKit! \nGõ /kiemtragiavang để bắt đầu",
+  ),
+);
 
-bot.on("message", (msg) => {
-  const chatId = msg.chat.id;
-
-  if (msg.text.toLowerCase() === "/start") {
-    const replyKeyboardMarkup = {
-      keyboard: [
-        ["Kiểm tra giá vàng"], // Nút lệnh 1
-        ["Lệnh khác"], // Nút lệnh 2, bạn có thể thêm nhiều lệnh tùy ý
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: true,
-    };
-
-    bot.sendMessage(chatId, "Chọn một lệnh:", {
-      reply_markup: replyKeyboardMarkup,
-    });
-  } else if (msg.text === "Kiểm tra giá vàng") {
-    fetchGoldPrice(chatId);
-  } else if (msg.text === "Lệnh khác") {
-    bot.sendMessage(chatId, "Veleoo");
-  }
+bot.command("kiemtragiavang", async (ctx) => {
+  ctx.reply("Đang check giá vàng...");
+  await fetchGoldPrice(ctx);
 });
 
-async function fetchGoldPrice(chatId) {
+bot.launch();
+
+async function fetchGoldPrice(ctx) {
   try {
     const response = await axios.get(api_link);
     const xmlData = await response.data;
+    const chatId = ctx.chat.id;
 
     xml2js.parseString(xmlData, (err, result) => {
       if (err) {
-        bot.sendMessage(chatId, "Có lỗi xảy ra khi phân tích dữ liệu.");
+        ctx.reply(chatId, "Có lỗi xảy ra khi phân tích dữ liệu.");
         return;
       }
 
@@ -55,11 +44,10 @@ async function fetchGoldPrice(chatId) {
       hcmItems.forEach((item) => {
         message += `- <b>${item.$.type}</b>\n  + Mua: ${item.$.buy} VND\n  + Bán: ${item.$.sell} VND\n`;
       });
-
-      bot.sendMessage(chatId, message, { parse_mode: "HTML" });
+      ctx.reply(message, { parse_mode: "HTML" });
+      ctx.reply("Chúc bạn một ngày vui!");
     });
   } catch (error) {
-    console.error("Có lỗi xảy ra:", error);
-    bot.sendMessage(chatId, "Có lỗi xảy ra khi truy cập dữ liệu.");
+    ctx.reply(chatId, "Có lỗi xảy ra khi truy cập dữ liệu.");
   }
 }
